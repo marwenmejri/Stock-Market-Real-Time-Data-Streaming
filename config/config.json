@@ -1,0 +1,8 @@
+{
+    "MINIO": {
+        "ACCESS_KEY": "minioadmin",
+        "SECRET_KEY": "minioadmin"
+    },
+    "ALPHA_VINTAGE_API_KEY": "7WI7ZS35OKYXV9AI",
+    "TWELVE_DATA_API_KEY": "142859c80de342b188400600ba20c653"
+}

@@ -1,107 +1,123 @@
 # Stock Market Real-Time Data Streaming Project
 
-## Project Overview
-This project is designed to build a real-time data streaming pipeline for stock market data using open-source tools and technologies. The goal is to ingest financial data from sources like Yahoo Finance and Alpha Vantage, process it in real-time using Apache Kafka and Apache Spark, store intermediate results in Minio, and load the final processed data into Snowflake for analysis.
+🔍 **Project Overview**
 
-The entire pipeline will be containerized using Docker, and Apache Airflow will be used to orchestrate the workflow.
+This project is a real-time data streaming pipeline for stock market data. We ingest live and historical data from sources like Yahoo Finance, Alpha Vantage, and Twelve Data WebSocket API. The data is processed using Kafka and Spark, stored in MinIO, and sent to Snowflake for analytics. Apache Airflow orchestrates every component, and everything runs inside Docker containers for easy development and deployment.
+
+📊 **Technical Requirements**
+
+### 🧰 Technologies Used
+
+#### **Data Sources**:
+- [Yahoo Finance](https://finance.yahoo.com/)
+- [Alpha Vantage](https://www.alphavantage.co/)
+- [Twelve Data WebSocket API](https://twelvedata.com/)
+
+#### **Streaming and Processing**:
+- [Apache Kafka](https://kafka.apache.org/) (For real-time data ingestion and processing)
+- [Apache Spark](https://spark.apache.org/) (Batch + Streaming) (For data transformation and analysis)
+
+#### **Storage**:
+- [MinIO](https://min.io/) (For storing intermediate results)
+- [Snowflake](https://www.snowflake.com/) (For analytics and long-term storage)
+
+#### **Orchestration**:
+- [Apache Airflow](https://airflow.apache.org/) (For orchestrating the entire pipeline)
+
+#### **Containerization**:
+- [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/)
+
+#### **Other Tools**:
+- PostgreSQL
+- Python
+- WebSocket
+- requests
+- yfinance
+- kafka-python
 
 ---
 
-## Technical Requirements
-
-### Technologies Used
-- **Data Sources**: 
-  - [Yahoo Finance API](https://finance.yahoo.com/)
-  - [Alpha Vantage API](https://www.alphavantage.co/)
-- **Streaming and Processing**:
-  - [Apache Kafka](https://kafka.apache.org/)
-  - [Apache Spark](https://spark.apache.org/) (Batch + Streaming)
-- **Storage**:
-  - [Minio](https://min.io/) (Object Storage)
-  - [Snowflake](https://www.snowflake.com/) (Cloud Data Warehouse)
-- **Orchestration**:
-  - [Apache Airflow](https://airflow.apache.org/)
-- **Database**:
-  - [PostgreSQL](https://www.postgresql.org/) (Metadata/Intermediate Results)
-- **Containerization**:
-  - [Docker](https://www.docker.com/)
-
----
 
 ### Pipeline Architecture
 
 Below is the high-level architecture of the project:
 
-![Project Architecture](project_architecture.jpeg)
+![Project Architecture](other_materials/project_architecture.jpeg)
+
+---
+
+🚀 **Current Progress (As of April 2025)**
+
+### ✅ Dockerized Infrastructure (DONE)
+- Kafka (3 brokers), Zookeeper
+- Spark Master + 3 Workers (resource-limited)
+- PostgreSQL
+- MinIO
+- Airflow Webserver + Scheduler
+- Custom container for data ingestion scripts
+- Kafka volume-based persistence implemented
+- Automatic topic creation with partitions and replication factor
+
+### ✅ Historical Data Ingestion (DONE)
+- `ingest_historical_yahoo.py`: Stores daily OHLCV data to Kafka/MinIO.
+- `ingest_historical_alpha.py`: Same logic for Alpha Vantage.
+
+### ✅ Real-Time Streaming Ingestion (DONE)
+- `ingest_realtime_yahoo.py`: Simulates live data by looping historical day data.
+- `ingest_realtime_alpha_vantage.py`: Loops Alpha's 1-minute endpoint.
+- `ingest_realtime_twelvedata_ws.py`: Full WebSocket-based live feed.
+- Kafka Producer logging and connection check added.
+
+### ✅ Scripts Containerization (DONE)
+- Dockerfile with:
+  - Dependencies in `requirements.txt`
+  - `scripts/` folder copied
+- Can `docker exec` to launch manually or used in Airflow later.
+
+---
+
+📆 **Project Structure (Simplified)**
+
+├── dags/ # Airflow DAGs (to be implemented)
+├── scripts/ # Python ingestion scripts
+├── config/ # API + Kafka config JSONs
+├── logs/ # Airflow logs
+├── requirements.txt # Python dependencies
+├── Dockerfile # For custom ingestion container
+├── .dockerignore
+├── docker-compose.yml # Full pipeline orchestration
+└── README.md # This file
 
 
 ---
 
-### Implementation Plan
+✅ **What's Next**
 
-#### Phase 1: Setup Environment
-1. **Install Docker**:
-   - Install Docker on your local machine or server.
-   - Use Docker Compose to set up Kafka, Zookeeper, Spark, Minio, PostgreSQL, and Airflow.
-
-2. **Configure Kafka and Zookeeper**:
-   - Start Kafka brokers and Zookeeper using Docker.
-   - Create Kafka topics for real-time data ingestion.
-
-3. **Set Up Minio**:
-   - Deploy Minio using Docker.
-   - Configure storage buckets for raw, real-time, and processed data.
-
-4. **Deploy PostgreSQL**:
-   - Use Docker to deploy PostgreSQL.
-   - Create databases and tables for metadata storage.
-
-5. **Deploy Airflow**:
-   - Use Docker to deploy Airflow.
-   - Configure Airflow to interact with Kafka, Spark, Minio, and Snowflake.
-
-#### Phase 2: Data Ingestion
-1. **Batch Ingestion**:
-   - Write Python scripts to fetch historical stock data from Yahoo Finance and Alpha Vantage.
-   - Store the data in CSV format in Minio.
-
-2. **Stream Ingestion**:
-   - Write Python scripts to continuously fetch real-time stock data.
-   - Push the data to Kafka topics.
-
-#### Phase 3: Real-Time Processing
-1. **Spark Streaming**:
-   - Write Spark Streaming applications to consume data from Kafka topics.
-   - Perform real-time transformations and write the processed data to Minio in Parquet format.
-
-#### Phase 4: Batch Processing
-1. **Spark Batch Processing**:
-   - Write Spark batch applications to process historical data stored in Minio.
-   - Perform batch transformations and store the processed data in Minio.
-
-#### Phase 5: Data Loading into Snowflake
-1. **Load Data into Snowflake**:
-   - Use Airflow to schedule the loading of processed data from Minio into Snowflake.
-   - Use Snowflake’s COPY command to efficiently load Parquet files.
-
-#### Phase 6: Orchestration
-1. **Define Airflow DAGs**:
-   - Create DAGs to orchestrate the entire pipeline:
-     - Data ingestion tasks.
-     - Real-time and batch processing tasks.
-     - Data loading tasks.
-   - Schedule the DAGs to run at specific intervals (e.g., hourly, daily).
-
-#### Phase 7: Monitoring and Testing
-1. **Monitor the Pipeline**:
-   - Use Airflow’s UI to monitor the status of DAGs and tasks.
-   - Monitor Kafka topics, Spark jobs, and Minio storage.
-
-2. **Test the Pipeline**:
-   - Test the end-to-end pipeline with sample data.
-   - Ensure data consistency between Minio and Snowflake.
+- **Spark Structured Streaming**: Consume and transform Kafka data.
+- **Store Processed Data in MinIO**: Save intermediate results in Parquet format.
+- **Archive and Compact Topics**: Manage Kafka topics efficiently.
+- **Export Processed Data to Snowflake**: Use Airflow to load data into Snowflake.
+- **Orchestrate Ingestion + ETL in Airflow DAGs**: Automate the entire pipeline.
+- **Optional Cloud Deployment**: Deploy on ECS / EC2 / Azure.
 
 ---
 
-### Conclusion
-This project demonstrates a comprehensive data engineering pipeline that integrates real-time and batch processing using open-source tools. It provides a scalable solution for ingesting, processing, and analyzing stock market data.
+🔎 **Screenshots (To Add)**
+- Airflow UI
+- MinIO bucket structure
+- Spark UI with running job
+- Kafka CLI producing/consuming messages
+
+---
+
+📂 **GitHub Repo**
+[https://github.com/marwenmejri/Stock-Market-Real-Time-Data-Streaming](https://github.com/marwenmejri/Stock-Market-Real-Time-Data-Streaming)
+
+This repo is under active development. Contributions and feedback are welcome!
+
+---
+
+📅 **Maintained by**
+Marwen Mejri - Senior Data Engineer
+
+Let's stream the market ⚡

@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+*.log
+*.sqlite3
+*.ipynb_checkpoints
+logs/
+data/
+config/api_keys.json
+*.zip
+.vscode/
+.idea/
+.DS_Store

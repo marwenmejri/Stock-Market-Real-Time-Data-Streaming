@@ -1,0 +1,19 @@
+# .gitignore
+.env
+*.pyc
+__pycache__/
+logs/
+dags/__pycache__/
+*.log
+.airflow/
+config/api_keys.json
+config/*.local
+data/
+.parquet/
+*.parquet
+*.db
+*.DS_Store
+*.ipynb_checkpoints
+.idea/
+.vscode/
+__pycache__/
