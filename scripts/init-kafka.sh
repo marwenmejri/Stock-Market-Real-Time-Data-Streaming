@@ -4,7 +4,7 @@ echo "Waiting for Kafka to be ready..."
 sleep 10
 
 echo "Creating topic 'stock-market' with 3 partitions and RF 3"
-/opt/kafka/bin/kafka-topics.sh \
+kafka-topics \
   --create \
   --if-not-exists \
   --topic stock-market \

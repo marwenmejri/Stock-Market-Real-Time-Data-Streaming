@@ -4,6 +4,7 @@ services:
   # MinIO - Object storage
   minio:
     image: minio/minio:latest
+    container_name: minio
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
@@ -17,6 +18,7 @@ services:
   # PostgreSQL - Relational database
   postgres:
     image: postgres:latest
+    container_name: postgres
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin123
@@ -29,6 +31,7 @@ services:
   # Zookeeper
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -38,6 +41,7 @@ services:
   # Kafka Brokers
   kafka1:
     image: confluentinc/cp-kafka:latest
+    container_name: kafka1
     depends_on:
       - zookeeper
     environment:
@@ -47,16 +51,17 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_LOG_RETENTION_HOURS: 168      # 7 days
+      KAFKA_LOG_RETENTION_BYTES: -1       # Unlimited by size
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824 # 1GB per segment
     ports:
       - "9092:9092"
     volumes:
-      - ./scripts/init-kafka.sh:/init-kafka.sh
       - kafka1_data:/var/lib/kafka/data
-    command: >
-      bash -c "/etc/confluent/docker/run & sleep 15 && bash /init-kafka.sh && wait"
 
   kafka2:
     image: confluentinc/cp-kafka:latest
+    container_name: kafka2
     depends_on:
       - zookeeper
     environment:
@@ -66,6 +71,9 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9093
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_LOG_RETENTION_HOURS: 168      # 7 days
+      KAFKA_LOG_RETENTION_BYTES: -1       # Unlimited by size
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824 # 1GB per segment
     ports:
       - "9093:9093"
     volumes:
@@ -73,6 +81,7 @@ services:
 
   kafka3:
     image: confluentinc/cp-kafka:latest
+    container_name: kafka3
     depends_on:
       - zookeeper
     environment:
@@ -82,63 +91,95 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:9094
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_LOG_RETENTION_HOURS: 168      # 7 days
+      KAFKA_LOG_RETENTION_BYTES: -1       # Unlimited by size
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824 # 1GB per segment
     ports:
       - "9094:9094"
     volumes:
       - kafka3_data:/var/lib/kafka/data
 
+  # Kafka Topic Creator (runs once)
+  kafka-init:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka-init
+    depends_on:
+      - kafka1
+    entrypoint: [ "bash", "-c", "sleep 20 && kafka-topics --create --if-not-exists --bootstrap-server kafka1:9092,kafka2:9093,kafka3:9094 --replication-factor 3 --partitions 3 --topic stock-market" ]
+
   # Spark Master
   spark-master:
     image: bitnami/spark:latest
+    container_name: spark-master
     environment:
       - SPARK_MODE=master
     ports:
       - "7077:7077"
       - "8080:8080"
+    volumes:
+      - ./scripts:/opt/bitnami/spark/scripts
+      - spark_history:/opt/bitnami/spark/history
+      - ./config/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+      - ./extra-jars:/opt/bitnami/spark/extra-jars
 
   # Spark Workers
   spark-worker1:
     image: bitnami/spark:latest
+    container_name: spark-worker1
     depends_on:
       - spark-master
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1024M
+    volumes:
+      - spark_history:/opt/bitnami/spark/history
+      - ./config/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+      - ./extra-jars:/opt/bitnami/spark/extra-jars
 
   spark-worker2:
     image: bitnami/spark:latest
+    container_name: spark-worker2
     depends_on:
       - spark-master
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1024M
+    volumes:
+      - spark_history:/opt/bitnami/spark/history
+      - ./config/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+      - ./extra-jars:/opt/bitnami/spark/extra-jars
 
   spark-worker3:
     image: bitnami/spark:latest
+    container_name: spark-worker3
     depends_on:
       - spark-master
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1024M
+    volumes:
+      - spark_history:/opt/bitnami/spark/history
+      - ./config/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+      - ./extra-jars:/opt/bitnami/spark/extra-jars
+
+  # Spark History Server
+  spark-history-server:
+    user: root
+    image: bitnami/spark:latest
+    container_name: spark-history-server
+    ports:
+      - "18080:18080"
+    volumes:
+      - spark_history:/opt/bitnami/spark/history
+      - ./config/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+      - ./extra-jars:/opt/bitnami/spark/extra-jars
+    entrypoint: >
+      bash -c "/opt/bitnami/spark/bin/spark-class org.apache.spark.deploy.history.HistoryServer --properties-file /opt/bitnami/spark/conf/spark-defaults.conf"
 
   # Airflow Webserver
   airflow-webserver:
     image: apache/airflow:2.9.1
+    container_name: airflow-webserver
     restart: always
     depends_on:
       - postgres
@@ -148,6 +189,8 @@ services:
       AIRFLOW__CORE__FERNET_KEY: ''
       AIRFLOW__WEBSERVER__SECRET_KEY: a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0
       AIRFLOW__LOGGING__BASE_LOG_FOLDER: /opt/airflow/logs
+    ports:
+      - "8081:8080"
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
@@ -156,12 +199,11 @@ services:
       airflow db init &&
       airflow users create --username admin --firstname Marwen --lastname User --role Admin --password admin --email admin@example.com &&
       airflow webserver"
-    ports:
-      - "8081:8080"
 
   # Airflow Scheduler
   airflow-scheduler:
     image: apache/airflow:2.9.1
+    container_name: airflow-scheduler
     restart: always
     depends_on:
       - airflow-webserver
@@ -175,16 +217,15 @@ services:
       - ./logs:/opt/airflow/logs
     command: airflow scheduler
 
-  # Stock Ingestor Producer (Realtime script container)
+  # Stock Ingestor
   stock-ingestor:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.ingestor
+    container_name: stock-ingestor
     volumes:
       - ./scripts:/app/scripts
       - ./config:/app/config
-    networks:
-      default:
     tty: true
 
 volumes:
@@ -193,3 +234,8 @@ volumes:
   kafka1_data:
   kafka2_data:
   kafka3_data:
+  spark_history:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs

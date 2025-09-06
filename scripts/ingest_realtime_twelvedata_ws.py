@@ -19,6 +19,9 @@ with open("config/config.json") as f:
 # Kafka setup
 producer = KafkaProducer(
     bootstrap_servers=kafka_config['bootstrap_servers'],
+    acks="all",
+    retries=5,
+    linger_ms=10,
     value_serializer=lambda v: json.dumps(v).encode('utf-8')
 )
 
@@ -28,8 +31,8 @@ if producer.bootstrap_connected():
 else:
     logging.warning("Kafka bootstrap connection failed inside container.")
 
-# Keep a sliding window of the last 12 prices (~1 min)
-price_window = deque(maxlen=12)
+# Keep a sliding window of the last 6 prices (~1 min)
+price_window = deque(maxlen=6)
 
 # WebSocket callbacks
 def on_message(ws, message):
@@ -49,8 +52,8 @@ def on_message(ws, message):
 
                 logging.info(f"Received tick: {price} at {ts_epoch}")
 
-                # Emit synthetic OHLC every 12 ticks
-                if len(price_window) == 12:
+                # Emit synthetic OHLC every 6 ticks
+                if len(price_window) == 6:
                     prices = [p["price"] for p in price_window]
                     ts_iso = datetime.utcfromtimestamp(ts_epoch).isoformat()
 

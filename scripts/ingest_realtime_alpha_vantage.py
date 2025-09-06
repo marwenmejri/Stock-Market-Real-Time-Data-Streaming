@@ -17,6 +17,9 @@ with open('config/kafka_config.json') as f:
 # Kafka Producer Setup
 producer = KafkaProducer(
     bootstrap_servers=kafka_config['bootstrap_servers'],
+    acks="all",
+    retries=5,
+    linger_ms=10,
     value_serializer=lambda v: json.dumps(v).encode('utf-8')
 )
 
@@ -67,7 +70,7 @@ if __name__ == "__main__":
                 }
                 logging.info(f"Sending: {payload}")
                 push_to_kafka(payload, TOPIC_NAME)
-                time.sleep(12)
+                time.sleep(2)
         else:
             logging.warning("No intraday time series data returned.")
     except Exception as e:

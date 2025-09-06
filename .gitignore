@@ -17,3 +17,8 @@ data/
 .idea/
 .vscode/
 __pycache__/
+# Ignore everything inside extra-jars/
+extra-jars/*
+
+# But do NOT ignore the folder itself — ensure it's tracked
+!extra-jars/
