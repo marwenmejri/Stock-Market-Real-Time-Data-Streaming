@@ -12,7 +12,7 @@ with open('config/config.json') as f:
 
 # Minio Client Setup
 minio_client = Minio(
-    'localhost:9000',  # Minio server address (mapped from Docker container)
+    'minio:9000',  # Minio server address (mapped from Docker container)
     access_key=config['MINIO']['ACCESS_KEY'],  # MINIO username
     secret_key=config['MINIO']['SECRET_KEY'],  # Minio password
     secure=False  # Disable SSL (set to True if using HTTPS)
